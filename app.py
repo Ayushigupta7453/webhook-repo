@@ -1,9 +1,12 @@
 from flask import Flask, request
 from pymongo import MongoClient
 from datetime import datetime
+from flask_cors import CORS
+
 
 # Initialize Flask app
 app = Flask(__name__)
+CORS(app)
 
 # Connect to MongoDB
 client = MongoClient("mongodb://localhost:27017/")
@@ -85,6 +88,22 @@ def github_webhook():
 
     collection.insert_one(event_data)
     return {"status": "success"}, 200
+
+from flask import jsonify
+
+@app.route("/events", methods=["GET"])
+def get_events():
+    """
+    Returns all stored GitHub events from MongoDB in reverse chronological order.
+    """
+    events = list(collection.find().sort("timestamp", -1))
+    
+    # Convert ObjectId and timestamp for JSON serialization
+    for event in events:
+        event["_id"] = str(event["_id"])
+
+    return jsonify(events), 200
+
 
 # -----------------------------------
 # Run the Flask app
